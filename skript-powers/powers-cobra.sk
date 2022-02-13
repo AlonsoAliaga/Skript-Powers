@@ -1,0 +1,5 @@
+on damage:
+    set {_attacker} to convertUUID(attacker's uuid)
+    if {powers::cobra} is {_attacker}:
+        apply poison without particles to victim for 5 seconds
+        apply nausea without particles to victim for 10 seconds

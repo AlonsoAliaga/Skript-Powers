@@ -3,28 +3,34 @@ on load:
     #Credits
     log info "[&6Skript-Powers&r]"
     log info "[&6Skript-Powers&r] Created by ImNotStable"
-    log info "[&6Skript-Powers&r] Version 1.0.0"
+    log info "[&6Skript-Powers&r] Version 1.0.1"
     log info "[&6Skript-Powers&r]"
     #Configuration Files
     if file "plugins/Skript-Powers/core.yml" doesn't exist:
         log warning "[Skript-Powers] Configuration file was empty, rebuilding file."
         create file "plugins/Skript-Powers/core.yml"
-        set yaml value "Information" of file "plugins/Skript-Powers/core.yml" to false
-        if file "plugins/Skript-Powers/core.yml" exists:
-            log info "[&6Skript-Powers&r] Successfully rebuilt file."
-        else:
-            log error "[Skript-Powers] Couldn't rebuild file, please download the yaml manually from our Github."
+        set yaml value "version" of file "plugins/Skript-Powers/core.yml" to "1.0.1"
+        set yaml value "debug" of file "plugins/Skript-Powers/core.yml" to false
+    #Version Checker
+    if yaml value "version" of file "plugins/Skript-Powers/core.yml" isn't "1.0.1":
+        log warning "[Skript-Powers] core.yml was outdated, rebuilding file"
+        delete file "plugins/Skript-Powers/core.yml"
+        create file "plugins/Skript-Powers/core.yml"
+        set yaml value "version" of file "plugins/Skript-Powers/core.yml" to "1.0.1"
+        set yaml value "debug" of file "plugins/Skript-Powers/core.yml" to false
     #Default Powers
     if directory "plugins/Skript/scripts/skript-powers/" doesn't exist:
-        log warning "[Skript-Powers] Script folder didn't exist, rebuilding file."
+        debug(warning, "Script folder didn't exist, rebuilding file.")
         create directory "plugins/Skript/scripts/skript-powers/"
-        set {_list::*} to contents from url "https://raw.githubusercontent.com/ImNotStable/Skript-Powers/main/skript-powers/power%%20list"
-        loop {_list::*}:
-            download file from "https://github.com/ImNotStable/Skript-Powers/raw/main/skript-powers/%loop-value%" to file "plugins/Skript/scripts/skript-powers/%loop-value%"
         if directory "plugins/Skript/scripts/skript-powers/" exists:
-            log info "[&6Skript-Powers&r] Successfully created folder"
+            debug(info, "Successfully created folder")
+            set {_list::*} to contents from url "https://raw.githubusercontent.com/ImNotStable/Skript-Powers/main/skript-powers/power%%20list"
+            loop {_list::*}:
+                download file from "https://github.com/ImNotStable/Skript-Powers/raw/main/skript-powers/%loop-value%" to file "plugins/Skript/scripts/skript-powers/%loop-value%"
+                debug(info, "Downloading the default power %loop-value%")
         else:
-            log error "[Skript-Powers] Couldn't create folder, please create this folder manually (plugins/Skript/scripts/skript-powers/)"
+            debug(an error, "Couldn't create folder, please create this folder manually (plugins/Skript/scripts/skript-powers/)")
+    log info "[&6Skript-Powers&r] Loaded Skript-Powers"
     #Power Configuration Creator
     if directory "plugins/Skript/scripts/skript-powers/" exists:
         loop files in directory "plugins/Skript/scripts/skript-powers":
@@ -37,15 +43,13 @@ on load:
     #Power Reloader
     loop files in directory "plugins/Skript/scripts/skript-powers":
         set {_split::*} to split loop-value at "\powers-"
-        replace ".sk" with "" in {_split::2}
-        reload script "skript-powers/powers-%{_split::2}%.sk"
-        log info "[&6Skript-Powers&r] Loaded powers-%{_split::2}%.sk"
-    #Information Logger
-    if yaml value "Information" from file "plugins/Skript-Powers/core.yml" is true:
-        log info "[&6Skript-Powers&r] Server Version: %"server"'s version%"
-        log info "[&6Skript-Powers&r] Skript Version: %skript version%"
-        log info "[&6Skript-Powers&r] Addon List: %addons list%"
-    log info "[&6Skript-Powers&r] Loaded Skript-Powers"
+        if first character of {_split::2} isn't "-":
+            replace ".sk" with "" in {_split::2}
+            reload script "skript-powers/powers-%{_split::2}%.sk"
+            if script "skript-powers/powers-%{_split::2}%.sk" is loaded:
+                debug(info, "Loaded powers-%{_split::2}%.sk")
+            else:
+                debug(an error, "powers-%{_split::2}%.sk wasn't loaded")
 
 on unload:
     delete {powers::*}
@@ -55,11 +59,10 @@ command /skript-powers:
     trigger:
         open hopper inventory named "&6Skript-Powers Configuration" to player
         set slot 0 and 4 of player's current inventory to orange stained glass pane named "&6"
-        if yaml value "Information" from file "plugins/Skript-Powers/core.yml" is true:
-            set slot 1 of player's current inventory to writable book named "&6Information: &aOn"
+        if yaml value "debug" from file "plugins/Skript-Powers/core.yml" is true:
+            set slot 1 of player's current inventory to writable book named "&6Debug Mode: &aTrue"
         else:
-            set slot 1 of player's current inventory to book named "&6Information: &cOff"
-        set lore of slot 1 of player's current inventory to "&eWhen &aOn &ereloading the skript will post extra" and "&einformation about the server in the console"
+            set slot 1 of player's current inventory to book named "&6Debug Mode: &cFalse"
         set slot 2 of player's current inventory to totem of undying named "&6Edit Player/Power Configuration"
         loop yaml nodes "Powers." of file "plugins/Skript-Powers/core.yml":
             set {_} to yaml value "Powers.%loop-value%" of file "plugins/Skript-Powers/core.yml"
@@ -81,23 +84,18 @@ command /skript-powers:
 on inventory click:
     player has permission "skript-powers.*"
     if name of player's current inventory is "&6Skript-Powers Configuration":
-        if event-slot is 0 or 4:
-            cancel event
-        else if event-slot is 1:
-            cancel event
-            if yaml value "Information" from file "plugins/Skript-Powers/core.yml" is true:
-                set yaml value "Information" from file "plugins/Skript-Powers/core.yml" to false
-                set slot 1 of player's current inventory to book named "&6Information: &cOff"
+        cancel event
+        if event-slot is 1:
+            if yaml value "debug" from file "plugins/Skript-Powers/core.yml" is true:
+                set yaml value "debug" from file "plugins/Skript-Powers/core.yml" to false
+                set slot 1 of player's current inventory to book named "&6Debug Mode: &cFalse"
             else:
-                set yaml value "Information" from file "plugins/Skript-Powers/core.yml" to true
-                set slot 1 of player's current inventory to writable book named "&6Information: &aOn"
-            set lore of slot 1 of player's current inventory to "&eWhen &aOn &ereloading the skript will post extra" and "&einformation about the server in the console"
+                set yaml value "debug" from file "plugins/Skript-Powers/core.yml" to true
+                set slot 1 of player's current inventory to writable book named "&6Debug Mode: &aTrue"
         else if event-slot is 2:
-            cancel event
             set {_i} to number of yaml nodes "Powers." of file "plugins/Skript-Powers/core.yml"
-            set {_rows} to ceiling({_i}/9)
-            open chest inventory with {_rows} rows named "&6Edit Player/Power Configuration" to player
-            set {_rows} to ({_rows} * 9) - 1
+            open chest inventory with ceiling({_i}/9) rows named "&6Edit Player/Power Configuration" to player
+            set {_rows} to (ceiling({_i}/9) * 9) - 1
             set {_i} to 0
             loop yaml nodes "Powers." of file "plugins/Skript-Powers/core.yml":
                 set {_} to yaml value "Powers.%loop-value%" of file "plugins/Skript-Powers/core.yml"
@@ -117,7 +115,6 @@ on inventory click:
             loop integers from {_i} to {_rows}:
                 set slot loop-integer of player's current inventory to skeleton skull named "&8This power isn't set"
         else if event-slot is 3:
-            cancel event
             reload script script's name
     else if name of player's current inventory is "&6Edit Player/Power Configuration":
         cancel event
@@ -133,9 +130,8 @@ on inventory click:
         set {_power} to "%tag "power" of nbt of event-slot%"
         if event-slot is 0:
             set {_i} to number of all players
-            set {_rows} to ceiling({_i}/9)
-            open chest inventory with {_rows} rows named "&6Select a Player" to player
-            set {_rows} to ({_rows} * 9) - 1
+            open chest inventory with ceiling({_i}/9) rows named "&6Select a Player" to player
+            set {_rows} to (ceiling({_i}/9) * 9) - 1
             set {_i} to 0
             loop all players:
                 set slot {_i} of player's current inventory to loop-player's skull named "&e%loop-player% &e(&6%loop-player's uuid%&e)" with nbt "{power: %{_power}%}"
@@ -144,30 +140,44 @@ on inventory click:
                 set slot loop-integer of player's current inventory to skeleton skull named "&8Not a Player"
         else if event-slot is 2:
             open sign to player with lines "", "^^^^^^^^", "Enter a Player", "":
-                if 1st element out of lines doesn't contain " ":
-                    set {_player} to line 1 from url "https://api.mojang.com/users/profiles/minecraft/%1st element out of lines%"
-                    if {_player} is set:
-                        replace all "{""name"":""%1st element out of lines%"",""id"":""" and """}" with "" in {_player}
-                        set yaml value "Powers.%{_power}%" from file "plugins/Skript-Powers/core.yml" to {_player}
-                        set {powers::%{_power}%} to (1st element out of lines parsed as player)'s uuid
+                set {_player} to line 1 from url "https://api.mojang.com/users/profiles/minecraft/%1st element out of lines%"
+                if {_player} is set:
+                    set yaml value "Powers.%{_power}%" from file "plugins/Skript-Powers/core.yml" to content of json value "id" from text {_player}
+                    set {powers::%{_power}%} to convertUUID((content of json value "id" from text {_player} parsed as offlineplayer)'s uuid)
+                    if yaml value "Powers.%{_power}%" from file "plugins/Skript-Powers/core.yml" is content of json value "id" from text {_player}:
+                        debug(info, "Successfully set the power %{_power}% to %content of json value "id" from text {_player}%")
+                    else:
+                        debug(an error, "An error occured while attempting to set the power %{_power}% to %content of json value "id" from text {_player}%")  
+                else:
+                    debug(an error, "Invalid player input (%1st element out of lines%)")
         else if event-slot is 4:
             close player's inventory
             delete {powers::%{_power}%}
             set yaml value "Powers.%{_power}%" from file "plugins/Skript-Powers/core.yml" to "null"
+            if yaml value "Powers.%{_power}%" from file "plugins/Skript-Powers/core.yml" is "null":
+                debug(info, "Successfully cleared data of the power %{_power}%")
+            else:
+                debug(an error, "An error occured while attempting to clear data of the power %{_power}%")
     else if name of player's current inventory is "&6Select a Player":
         cancel event
         if event-slot isn't skeleton skull:
             set {_power} to "%tag "power" of nbt of event-slot%"
-            set {_split::*} to split event-slot's name at " &e(&6"
-            replace all "-" and "&e)" with "" in {_split::2} 
-            set yaml value "Powers.%{_power}%" of file "plugins/Skript-Powers/core.yml" to uncolored {_split::2}
+            set {_split::*} to split uncolored event-slot's name at " ("
+            set {_split::2} to convertUUID({_split::2})
+            set yaml value "Powers.%{_power}%" of file "plugins/Skript-Powers/core.yml" to {_split::2}
             close player's inventory
-            if yaml value "Powers.%{_power}%" of file "plugins/Skript-Powers/core.yml" is uncolored {_split::2}:
-                send action bar "&6Successfully set the power &e%{_power}% &6to %{_split::1}%" to players
+            if yaml value "Powers.%{_power}%" of file "plugins/Skript-Powers/core.yml" is {_split::2}:
+                debug(info, "Successfully set the power %{_power}% to %{_split::1}%")
                 set {powers::%{_power}%} to {_split::2}
             else:
-                send action bar "&cAn error occured while attempting to set the power &4%{_power}% &cto &4%uncolored {_split::1}%" to player
-                log error "[Skript-Powers] An error occured while attempting to set the power %{_power}% to %uncolored {_split::1}%"
+                debug(an error, "An error occured while attempting to set the power %{_power}% to %{_split::1}%")
+
+function debug(level: log level, message: string):
+    if yaml value "debug" of file "plugins/Skript-Powers/core.yml" is true:
+        if {_level} is info:
+            log {_level} "[&6Skript-Powers&r] &a%{_message}%"
+        else:
+            log {_level} "[Skript-Powers] %{_message}%"
 
 function convertUUID(uuid: string) :: string:
     replace all "-" with "" in {_uuid}

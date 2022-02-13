@@ -1,0 +1,7 @@
+on damage:
+    set {_victim} to convertUUID(victim's uuid)
+    if {powers::slime} is {_victim}:
+        if damage cause is fire:
+            cancel event
+        else if damage cause is burning:
+            cancel event

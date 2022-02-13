@@ -1,0 +1,5 @@
+on death:
+    set {_victim} to convertUUID(victim's uuid)
+    if {powers::undying} is {_victim}:
+        cancel event
+        play resurrection by totem on victim

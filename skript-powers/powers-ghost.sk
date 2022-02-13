@@ -1,0 +1,7 @@
+on player sneak toggle:
+    set {_player} to convertUUID(player's uuid)
+    if {powers::ghost} is {_player}:
+        if player isn't sneaking:
+            apply invisibility without particles to player for 999 days
+        else:
+            remove invisibility from player
